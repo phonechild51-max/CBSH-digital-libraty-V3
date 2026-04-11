@@ -11,12 +11,12 @@ import { Search, UserCheck, UserX, Clock } from "lucide-react";
 
 interface User {
   id: string;
-  full_name: string;
+  name: string;
   email: string;
   role: string;
   status: string;
   created_at: string;
-  clerk_id: string;
+  insforge_uid: string;
 }
 
 type TabKey = "pending" | "approved" | "denied";
@@ -51,7 +51,7 @@ export default function ApproveUsersPage() {
 
       const { data } = await sb
         .from("users")
-        .select("id, full_name, email, role, status, created_at, clerk_id")
+        .select("id, name, email, role, status, created_at, insforge_uid")
         .order("created_at", { ascending: false });
 
       if (data) setUsers(data);
@@ -67,7 +67,7 @@ export default function ApproveUsersPage() {
         : u.status === tab;
     const matchSearch =
       !search ||
-      u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+      u.name?.toLowerCase().includes(search.toLowerCase()) ||
       u.email?.toLowerCase().includes(search.toLowerCase());
     return matchTab && matchSearch;
   });
@@ -80,7 +80,7 @@ export default function ApproveUsersPage() {
     setActioningId(user.id);
     startTransition(async () => {
       try {
-        await approveUser(user.id, user.clerk_id, user.role as "teacher" | "student");
+        await approveUser(user.id, user.insforge_uid, user.role as "teacher" | "student");
         setUsers((prev) =>
           prev.map((u) => (u.id === user.id ? { ...u, status: "approved" } : u))
         );
@@ -212,13 +212,13 @@ export default function ApproveUsersPage() {
                   border: "1px solid var(--color-accent-amber)",
                 }}
               >
-                {user.full_name?.charAt(0)?.toUpperCase() || "?"}
+                {user.name?.charAt(0)?.toUpperCase() || "?"}
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate" style={{ color: "var(--color-text-primary)" }}>
-                  {user.full_name}
+                  {user.name}
                 </p>
                 <p className="text-xs truncate" style={{ color: "var(--color-text-muted)" }}>
                   {user.email}
