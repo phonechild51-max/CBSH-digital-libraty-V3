@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     const name =
       `${first_name ?? ''} ${last_name ?? ''}`.trim() || email || 'Unknown'
 
-    await createServerClient()
+    const { error } = await createServerClient()
       .from('users')
       .upsert(
         {
@@ -45,6 +45,11 @@ export async function POST(req: Request) {
         },
         { onConflict: 'insforge_uid' }
       )
+
+    if (error) {
+      console.error('Supabase Insertion Error:', error)
+      return new Response('Database Error', { status: 500 })
+    }
   }
 
   return new Response('OK', { status: 200 })
