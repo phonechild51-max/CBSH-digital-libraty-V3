@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Cormorant_Garamond, DM_Sans, JetBrains_Mono, Geist } from "next/font/google";
+import { Cormorant_Garamond, DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
@@ -39,7 +36,7 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
+      <html lang="en" suppressHydrationWarning>
         <body
           className={`${cormorant.variable} ${dmSans.variable} ${jetbrainsMono.variable} antialiased`}
           style={{

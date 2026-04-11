@@ -4,15 +4,22 @@ import { NextResponse } from 'next/server'
 const isAdminRoute   = createRouteMatcher(['/admin(.*)'])
 const isTeacherRoute = createRouteMatcher(['/teacher(.*)'])
 const isStudentRoute = createRouteMatcher(['/student(.*)'])
-const isPublic       = createRouteMatcher(['/sign-in(.*)','/sign-up(.*)','/unauthorized'])
+const isPublic       = createRouteMatcher(['/sign-in(.*)', '/sign-up(.*)', '/unauthorized', '/api/webhooks(.*)'])
 
-export default clerkMiddleware((auth, req) => {
+export default clerkMiddleware(async (auth, req) => {
   if (isPublic(req)) return NextResponse.next()
 
-  const { userId, sessionClaims } = auth()
+  const { userId, sessionClaims } = await auth()
   if (!userId) return NextResponse.redirect(new URL('/sign-in', req.url))
 
-  const role = sessionClaims?.publicMetadata?.role as string | undefined
+  const role = (sessionClaims?.publicMetadata as { role?: string })?.role
+
+  console.log('--- DEBUG MIDDLEWARE ---')
+  console.log('User ID:', userId)
+  console.log('Session Claims:', JSON.stringify(sessionClaims, null, 2))
+  console.log('Evaluated Role:', role)
+  console.log('------------------------')
+
   if (isAdminRoute(req)   && role !== 'admin')   return NextResponse.redirect(new URL('/unauthorized', req.url))
   if (isTeacherRoute(req) && role !== 'teacher') return NextResponse.redirect(new URL('/unauthorized', req.url))
   if (isStudentRoute(req) && role !== 'student') return NextResponse.redirect(new URL('/unauthorized', req.url))
