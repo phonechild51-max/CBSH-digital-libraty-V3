@@ -43,7 +43,7 @@ export async function POST(req: Request) {
           role: 'student',
           status: 'pending',
         },
-        { onConflict: 'insforge_uid' }
+        { onConflict: 'insforge_uid', ignoreDuplicates: true }
       )
 
     if (error) {
