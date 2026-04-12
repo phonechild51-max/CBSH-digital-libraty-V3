@@ -3,6 +3,7 @@
 import { Users, FileText, ClipboardList, TrendingUp } from "lucide-react";
 import { StatCard } from "@/components/admin/StatCard";
 import { SubjectPieChart } from "@/components/admin/SubjectPieChart";
+import { RolePieChart } from "@/components/admin/RolePieChart";
 import { formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 
@@ -12,7 +13,7 @@ interface PendingUser {
   email: string;
   role: string;
   created_at: string;
-  clerk_id: string;
+  insforge_uid: string;
 }
 
 interface DashboardStats {
@@ -22,6 +23,7 @@ interface DashboardStats {
   pending_users?: number;
   pass_rate?: number;
   materials_by_subject?: { subject: string; count: number }[];
+  users_by_role?: { role: string; count: number }[];
 }
 
 interface AdminDashboardClientProps {
@@ -83,24 +85,47 @@ export function AdminDashboardClient({ stats, pendingUsers }: AdminDashboardClie
         />
       </div>
 
-      {/* Materials by Subject */}
-      <div
-        className="rounded-xl p-6"
-        style={{
-          backgroundColor: "var(--color-bg-card)",
-          border: "1px solid var(--color-border-card)",
-        }}
-      >
-        <h3
-          className="text-lg font-semibold mb-4"
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Materials by Subject */}
+        <div
+          className="rounded-xl p-6"
           style={{
-            fontFamily: "var(--font-display)",
-            color: "var(--color-text-heading)",
+            backgroundColor: "var(--color-bg-card)",
+            border: "1px solid var(--color-border-card)",
           }}
         >
-          Materials by Subject
-        </h3>
-        <SubjectPieChart data={stats.materials_by_subject || []} />
+          <h3
+            className="text-lg font-semibold mb-4"
+            style={{
+              fontFamily: "var(--font-display)",
+              color: "var(--color-text-heading)",
+            }}
+          >
+            Materials by Subject
+          </h3>
+          <SubjectPieChart data={stats.materials_by_subject || []} />
+        </div>
+
+        {/* Users by Role */}
+        <div
+          className="rounded-xl p-6"
+          style={{
+            backgroundColor: "var(--color-bg-card)",
+            border: "1px solid var(--color-border-card)",
+          }}
+        >
+          <h3
+            className="text-lg font-semibold mb-4"
+            style={{
+              fontFamily: "var(--font-display)",
+              color: "var(--color-text-heading)",
+            }}
+          >
+            Users by Role
+          </h3>
+          <RolePieChart data={stats.users_by_role || []} />
+        </div>
       </div>
 
       {/* Pending Approvals */}

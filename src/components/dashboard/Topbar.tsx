@@ -72,18 +72,6 @@ export function Topbar({ title, onMenuClick, supabaseUserId, role }: TopbarProps
 
       {/* Right */}
       <div className="flex items-center gap-2">
-        {/* Theme toggle */}
-        <button
-          onClick={toggle}
-          className="p-2 rounded-lg transition-all duration-200 hover:scale-105"
-          style={{
-            color: "var(--color-accent-amber)",
-            backgroundColor: "transparent",
-          }}
-          aria-label="Toggle theme"
-        >
-          {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
 
         {/* Notifications */}
         <div className="relative">
@@ -117,14 +105,18 @@ export function Topbar({ title, onMenuClick, supabaseUserId, role }: TopbarProps
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 p-1.5 rounded-lg transition-colors hover:bg-[var(--color-bg-card)]">
               <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold overflow-hidden"
                 style={{
                   backgroundColor: "var(--color-accent-amber-glow)",
                   color: "var(--color-accent-amber)",
                   border: "1px solid var(--color-accent-amber)",
                 }}
               >
-                {displayName.charAt(0).toUpperCase()}
+                {user?.imageUrl ? (
+                  <img src={user.imageUrl} alt={displayName} className="w-full h-full object-cover" />
+                ) : (
+                  displayName.charAt(0).toUpperCase()
+                )}
               </div>
             </button>
           </DropdownMenuTrigger>

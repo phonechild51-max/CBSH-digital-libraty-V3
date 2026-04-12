@@ -7,11 +7,12 @@ import {
   createAnnouncement,
   updateAnnouncement,
   deleteAnnouncement,
+  publishAnnouncement,
 } from "./actions";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import { Megaphone, Trash2, Edit3, Plus } from "lucide-react";
+import { Megaphone, Trash2, Edit3, Plus, Send, CheckCircle2 } from "lucide-react";
 
 interface Announcement {
   id: string;
@@ -22,6 +23,7 @@ interface Announcement {
   expiry_date: string | null;
   created_at: string;
   created_by: string;
+  is_published?: boolean;
 }
 
 const PRIORITY_STYLES: Record<string, { bg: string; color: string }> = {
@@ -44,6 +46,7 @@ export default function AnnouncementsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Announcement | null>(null);
+  const [publishTarget, setPublishTarget] = useState<Announcement | null>(null);
   const [isPending, startTransition] = useTransition();
   const [supabaseUserId, setSupabaseUserId] = useState<string | null>(null);
   const { session } = useSession();
@@ -65,7 +68,7 @@ export default function AnnouncementsPage() {
       const { data } = await sb
         .from("users")
         .select("id")
-        .eq("clerk_id", user.id)
+        .eq("insforge_uid", user.id)
         .single();
 
       if (data) setSupabaseUserId(data.id);
@@ -164,6 +167,16 @@ export default function AnnouncementsPage() {
     });
   };
 
+  const handlePublish = () => {
+    if (!publishTarget) return;
+    const target = publishTarget;
+    startTransition(async () => {
+      await publishAnnouncement(target.id);
+      setAnnouncements((prev) => prev.map((a) => a.id === target.id ? { ...a, is_published: true } : a));
+      setPublishTarget(null);
+    });
+  };
+
   const inputStyle = {
     backgroundColor: "var(--color-bg-input)",
     border: "1px solid var(--color-border-input)",
@@ -247,7 +260,15 @@ export default function AnnouncementsPage() {
               type="date"
               value={form.expiry_date}
               onChange={(e) => setForm({ ...form, expiry_date: e.target.value })}
-              className="w-full px-3 py-2.5 rounded-xl text-sm"
+              onKeyDown={(e) => e.preventDefault()}
+              onClick={(e) => {
+                try {
+                  (e.target as HTMLInputElement).showPicker();
+                } catch (err) {
+                  // Ignore if unsupported
+                }
+              }}
+              className="w-full px-3 py-2.5 rounded-xl text-sm cursor-pointer"
               style={inputStyle}
               placeholder="Expiry date (optional)"
             />
@@ -262,7 +283,7 @@ export default function AnnouncementsPage() {
                   color: "#000",
                 }}
               >
-                {isPending ? "Saving…" : editingId ? "Update" : "Create"}
+                {isPending ? "Saving…" : editingId ? "Update" : "Save as Draft"}
               </button>
               {editingId && (
                 <button
@@ -315,6 +336,7 @@ export default function AnnouncementsPage() {
                     backgroundColor: "var(--color-bg-card)",
                     border: "1px solid var(--color-border-card)",
                     borderLeft: `3px solid ${pStyle.color}`,
+                    opacity: a.is_published ? 1 : 0.8,
                   }}
                   onClick={() => handleEdit(a)}
                 >
@@ -328,7 +350,7 @@ export default function AnnouncementsPage() {
                           {a.title}
                         </h4>
                         <Badge
-                          className="text-[10px] px-1.5 py-0 capitalize"
+                          className="text-[10px] px-1.5 py-0 capitalize border-none"
                           style={{ backgroundColor: pStyle.bg, color: pStyle.color }}
                         >
                           {a.priority}
@@ -342,6 +364,27 @@ export default function AnnouncementsPage() {
                         >
                           {a.target_role}
                         </Badge>
+                        {a.is_published ? (
+                          <Badge
+                            className="text-[10px] px-1.5 py-0 border-none items-center gap-1"
+                            style={{
+                              backgroundColor: "var(--color-success-subtle)",
+                              color: "var(--color-success)",
+                            }}
+                          >
+                            <CheckCircle2 size={10} /> Published
+                          </Badge>
+                        ) : (
+                          <Badge
+                            className="text-[10px] px-1.5 py-0 border-none items-center gap-1"
+                            style={{
+                              backgroundColor: "var(--color-bg-input)",
+                              color: "var(--color-text-secondary)",
+                            }}
+                          >
+                            Draft
+                          </Badge>
+                        )}
                       </div>
                       <p
                         className="text-xs line-clamp-2"
@@ -357,17 +400,32 @@ export default function AnnouncementsPage() {
                         {a.expiry_date && ` · Expires ${formatDate(a.expiry_date)}`}
                       </p>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteTarget(a);
-                      }}
-                      className="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-danger-subtle)] flex-shrink-0"
-                      style={{ color: "var(--color-danger)" }}
-                      title="Delete"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="flex flex-col gap-1 items-end">
+                      {!a.is_published && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPublishTarget(a);
+                          }}
+                          className="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-accent-amber-subtle)]"
+                          style={{ color: "var(--color-accent-amber)" }}
+                          title="Publish"
+                        >
+                          <Send size={16} />
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteTarget(a);
+                        }}
+                        className="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-danger-subtle)]"
+                        style={{ color: "var(--color-danger)" }}
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -384,6 +442,16 @@ export default function AnnouncementsPage() {
         description={`Delete "${deleteTarget?.title}"? This cannot be undone.`}
         confirmLabel="Delete"
         variant="danger"
+      />
+
+      <ConfirmDialog
+        open={!!publishTarget}
+        onClose={() => setPublishTarget(null)}
+        onConfirm={handlePublish}
+        title="Publish Announcement"
+        description={`Are you sure you want to publish "${publishTarget?.title}"? This will send a notification to all targeted users immediately.`}
+        confirmLabel="Publish"
+        variant="primary"
       />
     </div>
   );

@@ -99,6 +99,7 @@ export default function StudentDashboardPage() {
         sb
           .from("announcements")
           .select("id, title, content, priority, created_at")
+          .eq("is_published", true)
           .order("created_at", { ascending: false })
           .limit(5),
       ]);

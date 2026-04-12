@@ -79,20 +79,17 @@ export default function TakeQuizPage() {
         return;
       }
 
-      // Fetch questions — only text and options, NOT correct_answer
-      const { data: questionsData } = await sb
-        .from("questions")
-        .select(
-          "id, question_text, option_a, option_b, option_c, option_d, marks, question_order"
-        )
-        .eq("quiz_id", quizId)
-        .order("question_order", { ascending: true });
+      // Fetch questions from API (since RLS blocks direct client access to hide correct_answer)
+      const questionsRes = await fetch(`/api/quizzes/${quizId}/questions`);
+      const questionsDataRaw = await questionsRes.json();
 
-      if (!questionsData?.length) {
-        setError("This quiz has no questions.");
+      if (!questionsRes.ok || !questionsDataRaw.questions?.length) {
+        setError(`DEBUG: Status = ${questionsRes.status}, Data = ${JSON.stringify(questionsDataRaw)}`);
         setLoading(false);
         return;
       }
+
+      const questionsData = questionsDataRaw.questions;
 
       setQuiz(quizData);
       setQuestions(questionsData);

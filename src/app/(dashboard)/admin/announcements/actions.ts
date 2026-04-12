@@ -22,6 +22,7 @@ export async function createAnnouncement(data: AnnouncementInput) {
     target_role: data.target_role,
     expiry_date: data.expiry_date || null,
     created_by: data.created_by,
+    is_published: false,
   });
 
   if (error) throw new Error(`Failed to create announcement: ${error.message}`);
@@ -43,6 +44,44 @@ export async function updateAnnouncement(id: string, data: Partial<AnnouncementI
     .eq("id", id);
 
   if (error) throw new Error(`Failed to update announcement: ${error.message}`);
+  revalidatePath("/admin/announcements");
+}
+
+export async function publishAnnouncement(id: string) {
+  const supabase = createServerClient();
+
+  // Mark as published and get data to know what notification to send
+  const { data: announcement, error: fetchError } = await supabase
+    .from("announcements")
+    .update({ is_published: true })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (fetchError || !announcement) throw new Error(`Failed to publish announcement: ${fetchError?.message}`);
+
+  // Fetch target users to send notifications
+  let query = supabase.from("users").select("id").in("status", ["approved", "email_verified"]);
+  
+  if (announcement.target_role === "students") query = query.eq("role", "student");
+  else if (announcement.target_role === "teachers") query = query.eq("role", "teacher");
+  else if (announcement.target_role === "admins") query = query.eq("role", "admin");
+
+  const { data: users } = await query;
+  
+  if (users && users.length > 0) {
+    const notifications = users.map((user) => ({
+      user_id: user.id,
+      message: `New Announcement: ${announcement.title}`,
+      type: "info",
+      read: false,
+    }));
+    
+    // Batch insert notifications
+    const { error: notifError } = await supabase.from("notifications").insert(notifications);
+    if (notifError) console.error("Failed to insert notifications:", notifError);
+  }
+
   revalidatePath("/admin/announcements");
 }
 

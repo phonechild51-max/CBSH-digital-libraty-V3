@@ -13,10 +13,11 @@ export async function setRoleAction(role: "student" | "teacher") {
   const client = await clerkClient();
   const user = await client.users.getUser(userId);
 
-  // Update Clerk Metadata
+  // Update Clerk Metadata to pending status. DO NOT grant actual 'role' yet.
   await client.users.updateUserMetadata(userId, {
     publicMetadata: {
-      role: role,
+      status: "pending",
+      requested_role: role,
     },
   });
 

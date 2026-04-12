@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import { approveUser, denyUser } from "./actions";
+import { approveUser, denyUser, reverseDenyUser, changeUserRole, deleteUser, getAdminUsers } from "./actions";
 
 import { useSession } from "@clerk/nextjs";
-import { createClient } from "@supabase/supabase-js";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import { Search, UserCheck, UserX, Clock } from "lucide-react";
+import { Search, UserCheck, UserX, Clock, Trash2 } from "lucide-react";
 
 interface User {
   id: string;
@@ -17,6 +16,7 @@ interface User {
   status: string;
   created_at: string;
   insforge_uid: string;
+  profile_picture_url: string | null;
 }
 
 type TabKey = "pending" | "approved" | "denied";
@@ -36,25 +36,12 @@ export default function ApproveUsersPage() {
   const [, startTransition] = useTransition();
   const { session } = useSession();
 
-  // Fetch users with Clerk JWT for RLS
+  // Fetch users perfectly merged between Supabase and Clerk to avoid missing webhooks
   useEffect(() => {
     async function fetchUsers() {
       if (!session) return;
-      const token = await session.getToken({ template: "supabase" });
-      if (!token) return;
-
-      const sb = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { global: { headers: { Authorization: `Bearer ${token}` } } }
-      );
-
-      const { data } = await sb
-        .from("users")
-        .select("id, name, email, role, status, created_at, insforge_uid")
-        .order("created_at", { ascending: false });
-
-      if (data) setUsers(data);
+      const data = await getAdminUsers();
+      if (data) setUsers(data as User[]);
       setLoading(false);
     }
     fetchUsers();
@@ -96,12 +83,60 @@ export default function ApproveUsersPage() {
     setActioningId(user.id);
     startTransition(async () => {
       try {
-        await denyUser(user.id);
+        await denyUser(user.id, user.insforge_uid);
         setUsers((prev) =>
           prev.map((u) => (u.id === user.id ? { ...u, status: "denied" } : u))
         );
       } catch (err) {
         console.error(err);
+      } finally {
+        setActioningId(null);
+      }
+    });
+  };
+
+  const handleChangeRole = (user: User, newRole: string) => {
+    setActioningId(user.id);
+    startTransition(async () => {
+      try {
+        await changeUserRole(user.id, user.insforge_uid, newRole);
+        setUsers((prev) =>
+          prev.map((u) => (u.id === user.id ? { ...u, role: newRole } : u))
+        );
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setActioningId(null);
+      }
+    });
+  };
+
+  const handleReverseDeny = (user: User) => {
+    setActioningId(user.id);
+    startTransition(async () => {
+      try {
+        await reverseDenyUser(user.id, user.insforge_uid);
+        setUsers((prev) =>
+          prev.map((u) => (u.id === user.id ? { ...u, status: "pending" } : u))
+        );
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setActioningId(null);
+      }
+    });
+  };
+
+  const handleDelete = (user: User) => {
+    if (!window.confirm(`Are you sure you want to permanently delete ${user.name}? This cannot be undone.`)) return;
+    setActioningId(user.id);
+    startTransition(async () => {
+      try {
+        await deleteUser(user.id, user.insforge_uid);
+        setUsers((prev) => prev.filter((u) => u.id !== user.id));
+      } catch (err) {
+        console.error(err);
+        alert("Failed to delete user. Check console for details.");
       } finally {
         setActioningId(null);
       }
@@ -205,14 +240,19 @@ export default function ApproveUsersPage() {
             >
               {/* Avatar */}
               <div
-                className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden"
                 style={{
                   backgroundColor: "var(--color-accent-amber-glow)",
                   color: "var(--color-accent-amber)",
                   border: "1px solid var(--color-accent-amber)",
                 }}
               >
-                {user.name?.charAt(0)?.toUpperCase() || "?"}
+                {user.profile_picture_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={user.profile_picture_url} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  user.name?.charAt(0)?.toUpperCase() || "?"
+                )}
               </div>
 
               {/* Info */}
@@ -244,19 +284,70 @@ export default function ApproveUsersPage() {
 
               {/* Actions / Status */}
               {user.status === "approved" ? (
-                <Badge
-                  className="text-xs px-2 py-1"
-                  style={{ backgroundColor: "var(--color-success-subtle)", color: "var(--color-success)" }}
-                >
-                  Approved
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    className="text-xs px-2 py-1"
+                    style={{ backgroundColor: "var(--color-success-subtle)", color: "var(--color-success)" }}
+                  >
+                    Approved
+                  </Badge>
+                  <select
+                    value={user.role}
+                    onChange={(e) => handleChangeRole(user, e.target.value)}
+                    disabled={actioningId === user.id}
+                    className="px-2 py-1 rounded-lg text-xs font-semibold disabled:opacity-50 transition-colors cursor-pointer"
+                    style={{ 
+                      backgroundColor: "transparent", 
+                      color: "var(--color-text-secondary)",
+                      border: "1px solid var(--color-border-card)" 
+                    }}
+                    title="Change User Role"
+                  >
+                    <option value="student" style={{ backgroundColor: "var(--color-bg-card)", color: "var(--color-text-primary)" }}>Student</option>
+                    <option value="teacher" style={{ backgroundColor: "var(--color-bg-card)", color: "var(--color-text-primary)" }}>Teacher</option>
+                    <option value="admin" style={{ backgroundColor: "var(--color-bg-card)", color: "var(--color-text-primary)" }}>Admin</option>
+                  </select>
+                  <button
+                    onClick={() => handleDelete(user)}
+                    disabled={actioningId === user.id}
+                    className="p-1.5 rounded-lg transition-colors ml-2 disabled:opacity-50"
+                    style={{ color: "var(--color-danger)" }}
+                    title="Delete User"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               ) : user.status === "denied" ? (
-                <Badge
-                  className="text-xs px-2 py-1"
-                  style={{ backgroundColor: "var(--color-danger-subtle)", color: "var(--color-danger)" }}
-                >
-                  Denied
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    className="text-xs px-2 py-1"
+                    style={{ backgroundColor: "var(--color-danger-subtle)", color: "var(--color-danger)" }}
+                  >
+                    Denied
+                  </Badge>
+                  <button
+                    onClick={() => handleReverseDeny(user)}
+                    disabled={actioningId === user.id}
+                    className="px-2 py-1 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50"
+                    style={{ 
+                      backgroundColor: "transparent", 
+                      color: "var(--color-text-secondary)",
+                      border: "1px solid var(--color-border-card)" 
+                    }}
+                    title="Undo deny and return to pending"
+                  >
+                    {actioningId === user.id ? "…" : "Undo"}
+                  </button>
+                  <button
+                    onClick={() => handleDelete(user)}
+                    disabled={actioningId === user.id}
+                    className="p-1.5 rounded-lg transition-colors ml-2 disabled:opacity-50"
+                    style={{ color: "var(--color-danger)" }}
+                    title="Delete User"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               ) : (
                 <div className="flex gap-2">
                   <button
@@ -278,6 +369,15 @@ export default function ApproveUsersPage() {
                     }}
                   >
                     Deny
+                  </button>
+                  <button
+                    onClick={() => handleDelete(user)}
+                    disabled={actioningId === user.id}
+                    className="p-1.5 rounded-lg transition-colors ml-2 disabled:opacity-50"
+                    style={{ color: "var(--color-danger)" }}
+                    title="Delete User"
+                  >
+                    <Trash2 size={16} />
                   </button>
                 </div>
               )}

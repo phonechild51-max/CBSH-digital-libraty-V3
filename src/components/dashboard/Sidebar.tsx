@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useClerk, useUser } from "@clerk/nextjs";
 import {
   LayoutDashboard,
   UserCheck,
@@ -18,7 +17,6 @@ import {
   BookOpen,
   Download,
   GraduationCap,
-  LogOut,
   ChevronLeft,
   ChevronRight,
   X,
@@ -74,8 +72,6 @@ interface SidebarProps {
 
 export function Sidebar({ role, pendingCount = 0, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { signOut } = useClerk();
-  const { user } = useUser();
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -87,8 +83,6 @@ export function Sidebar({ role, pendingCount = 0, isOpen, onClose }: SidebarProp
   }, []);
 
   const items = NAV_ITEMS[role] || [];
-  const displayName = user?.firstName || user?.fullName || "User";
-  const roleLabel = role.charAt(0).toUpperCase() + role.slice(1);
 
   // Inject pending count badge on Approve Users
   const navItems = items.map((item) => {
@@ -268,54 +262,7 @@ export function Sidebar({ role, pendingCount = 0, isOpen, onClose }: SidebarProp
         </div>
       )}
 
-      {/* User Panel */}
-      <div
-        className="p-3"
-        style={{ borderTop: "1px solid var(--color-border-divider)" }}
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-            style={{
-              backgroundColor: "var(--color-accent-amber-glow)",
-              color: "var(--color-accent-amber)",
-              border: "1px solid var(--color-accent-amber)",
-            }}
-          >
-            {displayName.charAt(0).toUpperCase()}
-          </div>
-          {(!collapsed || isMobile) && (
-            <div className="flex-1 min-w-0">
-              <p
-                className="text-sm font-medium truncate"
-                style={{ color: "var(--color-text-primary)" }}
-              >
-                {displayName}
-              </p>
-              <Badge
-                className="text-[10px] px-1.5 py-0 font-medium mt-0.5"
-                style={{
-                  backgroundColor: "var(--color-accent-amber-subtle)",
-                  color: "var(--color-accent-amber)",
-                  border: "1px solid var(--color-accent-amber)",
-                }}
-              >
-                {roleLabel}
-              </Badge>
-            </div>
-          )}
-          {(!collapsed || isMobile) && (
-            <button
-              onClick={() => signOut()}
-              className="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-bg-card)]"
-              style={{ color: "var(--color-text-muted)" }}
-              title="Sign Out"
-            >
-              <LogOut size={16} />
-            </button>
-          )}
-        </div>
-      </div>
+
     </div>
   );
 

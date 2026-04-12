@@ -244,6 +244,21 @@ CREATE POLICY "read_announce" ON announcements FOR SELECT
 CREATE POLICY "admin_announce_all" ON announcements FOR ALL USING (auth_user_role() = 'admin');
 
 -- ============================
+-- STEP 7: STORAGE POLICIES
+-- ============================
+
+-- Ensure storage schema policies are created for standard buckets
+CREATE POLICY "Allow read cbsh-library" ON storage.objects FOR SELECT USING (bucket_id = 'cbsh-library');
+CREATE POLICY "Allow insert cbsh-library" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'cbsh-library');
+CREATE POLICY "Allow update cbsh-library" ON storage.objects FOR UPDATE USING (bucket_id = 'cbsh-library');
+CREATE POLICY "Allow delete cbsh-library" ON storage.objects FOR DELETE USING (bucket_id = 'cbsh-library');
+
+CREATE POLICY "Allow read cbsh-public" ON storage.objects FOR SELECT USING (bucket_id = 'cbsh-public');
+CREATE POLICY "Allow insert cbsh-public" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'cbsh-public');
+CREATE POLICY "Allow update cbsh-public" ON storage.objects FOR UPDATE USING (bucket_id = 'cbsh-public');
+CREATE POLICY "Allow delete cbsh-public" ON storage.objects FOR DELETE USING (bucket_id = 'cbsh-public');
+
+-- ============================
 -- DONE — Verify with:
 -- SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname='public';
 -- SELECT indexname FROM pg_indexes WHERE schemaname = 'public';

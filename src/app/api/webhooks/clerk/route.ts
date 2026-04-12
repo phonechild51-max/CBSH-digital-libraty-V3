@@ -6,9 +6,12 @@ interface ClerkWebhookEvent {
   type: string
   data: {
     id: string
-    email_addresses: { email_address: string }[]
-    first_name: string | null
-    last_name: string | null
+    email_addresses?: { email_address: string }[]
+    first_name?: string | null
+    last_name?: string | null
+    image_url?: string | null
+    username?: string | null
+    deleted?: boolean
   }
 }
 
@@ -27,27 +30,46 @@ export async function POST(req: Request) {
     return new Response('Invalid signature', { status: 400 })
   }
 
-  if (event.type === 'user.created') {
-    const { id, email_addresses, first_name, last_name } = event.data
-    const email = email_addresses[0]?.email_address
-    const name =
-      `${first_name ?? ''} ${last_name ?? ''}`.trim() || email || 'Unknown'
+  const sb = createServerClient()
 
-    const { error } = await createServerClient()
+  if (event.type === 'user.created' || event.type === 'user.updated') {
+    const { id, email_addresses, first_name, last_name, image_url, username } = event.data
+    const email = email_addresses?.[0]?.email_address
+    const fullName = `${first_name ?? ''} ${last_name ?? ''}`.trim()
+    const name = username || fullName || email || 'Unknown'
+
+    const { error } = await sb
       .from('users')
       .upsert(
         {
           insforge_uid: id,
           name,
           email,
-          role: 'student',
-          status: 'pending',
+          profile_picture_url: image_url,
+          ...(event.type === 'user.created' && {
+            role: 'student',
+            status: 'pending',
+          }),
         },
-        { onConflict: 'insforge_uid', ignoreDuplicates: true }
+        { onConflict: 'insforge_uid', ignoreDuplicates: false }
       )
 
     if (error) {
-      console.error('Supabase Insertion Error:', error)
+      console.error('Supabase Upsert Error:', error)
+      return new Response('Database Error', { status: 500 })
+    }
+  }
+
+  if (event.type === 'user.deleted') {
+    const { id } = event.data
+
+    const { error } = await sb
+      .from('users')
+      .delete()
+      .eq('insforge_uid', id)
+
+    if (error) {
+      console.error('Supabase Delete Error:', error)
       return new Response('Database Error', { status: 500 })
     }
   }
