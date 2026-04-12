@@ -17,7 +17,7 @@ interface ConfirmDialogProps {
   title: string;
   description: string;
   confirmLabel?: string;
-  variant?: "danger" | "warning";
+  variant?: "danger" | "warning" | "primary";
 }
 
 export function ConfirmDialog({
@@ -42,7 +42,11 @@ export function ConfirmDialog({
   };
 
   const btnColor =
-    variant === "danger" ? "var(--color-danger)" : "var(--color-warning)";
+    variant === "danger"
+      ? "var(--color-danger)"
+      : variant === "warning"
+      ? "var(--color-warning)"
+      : "var(--color-accent-amber)";
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>

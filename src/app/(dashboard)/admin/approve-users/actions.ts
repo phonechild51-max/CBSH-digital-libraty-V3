@@ -23,7 +23,7 @@ export async function getAdminUsers() {
       if (cu) {
         return {
           ...u,
-          profile_picture_url: cu.hasImage ? cu.imageUrl : null,
+          profile_picture_url: cu.imageUrl,
           name: cu.username || `${cu.firstName || ""} ${cu.lastName || ""}`.trim() || u.name
         };
       }

@@ -14,7 +14,7 @@ export default async function AdminProfilePage() {
   };
 
   try {
-    const { data: adminStats } = await sb.rpc("get_admin_dashboard_stats");
+    const { data: adminStats } = await sb.rpc<"get_admin_dashboard_stats", { total_users: number }>("get_admin_dashboard_stats");
     
     // Also fetch roles specific to verify our numbers, or count them directly if RPC doesn't have it
     const [studentsRes, teachersRes, materialsRes] = await Promise.all([
@@ -24,7 +24,7 @@ export default async function AdminProfilePage() {
     ]);
 
     stats = {
-      total_users: (adminStats as any)?.total_users || 0,
+      total_users: adminStats?.total_users || 0,
       students: studentsRes.count || 0,
       teachers: teachersRes.count || 0,
       materials: materialsRes.count || 0

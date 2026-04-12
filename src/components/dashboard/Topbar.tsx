@@ -113,6 +113,7 @@ export function Topbar({ title, onMenuClick, supabaseUserId, role }: TopbarProps
                 }}
               >
                 {user?.imageUrl ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
                   <img src={user.imageUrl} alt={displayName} className="w-full h-full object-cover" />
                 ) : (
                   displayName.charAt(0).toUpperCase()

@@ -264,7 +264,7 @@ export default function AnnouncementsPage() {
               onClick={(e) => {
                 try {
                   (e.target as HTMLInputElement).showPicker();
-                } catch (err) {
+                } catch {
                   // Ignore if unsupported
                 }
               }}

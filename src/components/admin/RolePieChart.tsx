@@ -75,7 +75,8 @@ export function RolePieChart({ data }: RolePieChartProps) {
                 color: "var(--color-text-primary)",
                 fontSize: "13px",
               }}
-              formatter={(value: any) => [`${value} registered`, ""]}
+              /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+              formatter={(value: any) => [`${value ?? 0} registered`, ""]}
             />
           </PieChart>
         </ResponsiveContainer>
