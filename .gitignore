@@ -43,3 +43,24 @@ Skills/
 CBSH_MASTER_BUILD_PROMPTS_v3.md
 Section 0 check.txt
 
+# Images and videos
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.svg
+*.webp
+*.ico
+*.bmp
+*.tiff
+*.mp4
+*.mov
+*.wmv
+*.avi
+*.webm
+*.m4v
+*.mkv
+*.flv
+
+# VS Code
+.vscode/
