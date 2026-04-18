@@ -125,7 +125,6 @@ export default function AnnouncementsPage() {
         await createAnnouncement({
           ...form,
           expiry_date: form.expiry_date || null,
-          created_by: supabaseUserId,
         });
         // Refetch to get the new item with its generated ID
         if (!session) return;

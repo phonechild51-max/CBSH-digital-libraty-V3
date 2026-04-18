@@ -84,20 +84,22 @@ export default function DownloadsBookmarksPage() {
       return;
     }
 
-    setSupabaseUserId(userData.id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const uid = (userData as any).id;
+    setSupabaseUserId(uid);
 
     const [downloadsRes, bookmarksRes] = await Promise.all([
       sb
         .from("downloads")
         .select("id, downloaded_at, materials(id, title, subject, file_type)")
-        .eq("user_id", userData.id)
+        .eq("user_id", uid)
         .order("downloaded_at", { ascending: false }),
       sb
         .from("bookmarks")
         .select(
           "id, created_at, material_id, materials(id, title, subject, semester, file_type, download_count, upload_date)"
         )
-        .eq("user_id", userData.id)
+        .eq("user_id", uid)
         .order("created_at", { ascending: false }),
     ]);
 
