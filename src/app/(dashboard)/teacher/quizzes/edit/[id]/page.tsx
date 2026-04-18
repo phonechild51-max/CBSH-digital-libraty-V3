@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { useSession, useUser } from '@clerk/nextjs'
 import { createClient } from '@supabase/supabase-js'
 import { updateQuizMeta, updateQuizQuestions, type QuestionInput } from './actions'
@@ -56,7 +56,6 @@ const emptyQuestion = (order: number): Question => ({
 
 export default function EditQuizPage() {
   const { id: quizId } = useParams() as { id: string }
-  const router = useRouter()
   const { session } = useSession()
   const { user } = useUser()
 

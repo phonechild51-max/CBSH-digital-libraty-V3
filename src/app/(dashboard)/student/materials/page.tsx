@@ -89,14 +89,15 @@ export default function BrowseMaterialsPage() {
     setSupabaseUserId(userData.id);
 
     // Fetch materials and bookmarks in parallel
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [materialsRes, bookmarksRes] = await Promise.all([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (sb as any)
         .from("materials")
         .select(
           "id, title, description, subject, semester, tags, file_type, file_size, download_count, upload_date"
         )
         .order("upload_date", { ascending: false }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (sb as any)
         .from("bookmarks")
         .select("material_id")

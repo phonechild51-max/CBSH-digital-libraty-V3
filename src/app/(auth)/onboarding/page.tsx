@@ -124,6 +124,12 @@ export default function OnboardingPage() {
             </p>
           </button>
         </div>
+        
+        {roleError && (
+          <div className="mt-6 p-4 rounded-xl text-center text-sm font-semibold" style={{ backgroundColor: "var(--color-danger-subtle)", color: "var(--color-danger)", border: "1px solid var(--color-danger)" }}>
+            {roleError}
+          </div>
+        )}
       </div>
 
       {(status === "pending" || (!status && submittedRole)) && (
