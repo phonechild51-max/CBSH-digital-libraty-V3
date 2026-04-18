@@ -2,7 +2,8 @@
 
 import { SignIn } from "@clerk/nextjs";
 import { useTheme } from "@/hooks/useTheme";
-import { Sun, Moon, BookOpen } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
+import Image from "next/image";
 
 export default function SignInPage() {
   const { theme, toggle } = useTheme();
@@ -25,10 +26,9 @@ export default function SignInPage() {
 
       {/* Left Panel — Decorative */}
       <div
-        className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col items-center justify-center p-12"
+        className="hidden lg:flex lg:w-1/2 relative overflow-hidden flex-col items-center justify-center p-12 bg-cover bg-center"
         style={{
-          background:
-            "linear-gradient(135deg, var(--color-bg-sidebar) 0%, #1a1410 50%, var(--color-bg-app) 100%)",
+          backgroundImage: "linear-gradient(to bottom, rgba(0,0,0,0.3), rgba(0,0,0,0.5)), url('/login-bg.png')",
         }}
       >
         {/* Geometric Pattern Overlay */}
@@ -59,17 +59,16 @@ export default function SignInPage() {
         {/* Content */}
         <div className="relative z-10 text-center max-w-md">
           <div
-            className="mb-8 mx-auto w-20 h-20 rounded-2xl flex items-center justify-center"
+            className="mb-8 mx-auto w-24 h-24 rounded-2xl overflow-hidden shadow-lg bg-white flex items-center justify-center p-1"
             style={{
-              backgroundColor: "var(--color-accent-amber-glow)",
               border: "1px solid var(--color-accent-amber)",
             }}
           >
-            <BookOpen size={36} style={{ color: "var(--color-accent-amber)" }} />
+            <Image src="/logo.jpg" alt="CBSH Logo" width={96} height={96} className="w-full h-full object-contain hover:scale-105 transition-transform" />
           </div>
 
           <h1
-            className="text-5xl font-bold mb-4 leading-tight"
+            className="text-5xl font-bold mb-4 leading-tight drop-shadow-lg"
             style={{
               fontFamily: "var(--font-display)",
               color: "var(--color-accent-amber)",
@@ -78,7 +77,7 @@ export default function SignInPage() {
             CBSH
           </h1>
           <h2
-            className="text-2xl font-medium mb-6"
+            className="text-2xl font-medium mb-6 drop-shadow-md"
             style={{
               fontFamily: "var(--font-display)",
               color: "var(--color-text-heading)",
@@ -93,7 +92,7 @@ export default function SignInPage() {
           />
 
           <p
-            className="text-base leading-relaxed"
+            className="text-base leading-relaxed drop-shadow"
             style={{ color: "var(--color-text-secondary)" }}
           >
             Access study materials, take quizzes, and explore a curated academic
@@ -111,13 +110,12 @@ export default function SignInPage() {
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
             <div
-              className="mb-4 mx-auto w-14 h-14 rounded-xl flex items-center justify-center"
+              className="mb-4 mx-auto w-16 h-16 rounded-xl overflow-hidden shadow-md bg-white flex items-center justify-center p-1"
               style={{
-                backgroundColor: "var(--color-accent-amber-glow)",
                 border: "1px solid var(--color-accent-amber)",
               }}
             >
-              <BookOpen size={28} style={{ color: "var(--color-accent-amber)" }} />
+              <Image src="/logo.jpg" alt="CBSH Logo" width={64} height={64} className="w-full h-full object-contain" />
             </div>
             <h1
               className="text-3xl font-bold"

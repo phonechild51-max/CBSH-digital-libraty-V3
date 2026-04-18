@@ -21,17 +21,22 @@ export function useNotifications(supabaseUserId: string | undefined) {
 
   const getClient = useCallback(async () => {
     if (!session) return null
-    const token = await session.getToken({ template: 'supabase' })
-    if (!token) return null
-    if (token !== tokenRef.current || !sbRef.current) {
-      tokenRef.current = token
-      sbRef.current = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { global: { headers: { Authorization: `Bearer ${token}` } } }
-      )
+    try {
+      const token = await session.getToken({ template: 'supabase' })
+      if (!token) return null
+      if (token !== tokenRef.current || !sbRef.current) {
+        tokenRef.current = token
+        sbRef.current = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          { global: { headers: { Authorization: `Bearer ${token}` } } }
+        )
+      }
+      return sbRef.current
+    } catch (error) {
+      console.warn('Failed to retrieve Supabase token from Clerk session:', error)
+      return null
     }
-    return sbRef.current
   }, [session])
 
   const fetchNotifications = useCallback(async () => {

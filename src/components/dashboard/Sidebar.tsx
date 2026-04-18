@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
@@ -112,13 +113,12 @@ export function Sidebar({ role, pendingCount = 0, isOpen, onClose }: SidebarProp
         {(!collapsed || isMobile) && (
           <div className="flex items-center gap-3">
             <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+              className="w-9 h-9 rounded-lg flex-shrink-0 overflow-hidden bg-white flex items-center justify-center p-0.5"
               style={{
-                backgroundColor: "var(--color-accent-amber-glow)",
                 border: "1px solid var(--color-accent-amber)",
               }}
             >
-              <BookOpen size={18} style={{ color: "var(--color-accent-amber)" }} />
+              <Image src="/logo.jpg" alt="CBSH Logo" width={36} height={36} className="w-full h-full object-contain" />
             </div>
             <div>
               <span
@@ -135,13 +135,12 @@ export function Sidebar({ role, pendingCount = 0, isOpen, onClose }: SidebarProp
         )}
         {collapsed && !isMobile && (
           <div
-            className="w-9 h-9 rounded-lg flex items-center justify-center mx-auto"
+            className="w-9 h-9 rounded-lg flex items-center justify-center mx-auto overflow-hidden bg-white p-0.5"
             style={{
-              backgroundColor: "var(--color-accent-amber-glow)",
               border: "1px solid var(--color-accent-amber)",
             }}
           >
-            <BookOpen size={18} style={{ color: "var(--color-accent-amber)" }} />
+            <Image src="/logo.jpg" alt="CBSH Logo" width={36} height={36} className="w-full h-full object-contain" />
           </div>
         )}
         {isMobile && (
