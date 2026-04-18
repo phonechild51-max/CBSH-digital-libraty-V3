@@ -13,10 +13,21 @@ export async function getAdminUsers() {
 
   if (error || !users) return [];
 
-  // Local development fallback: Merge live data from Clerk so users don't have to rely on webhooks
+  // Local development fallback: Merge live data from Clerk so users don't have to rely on webhooks.
+  // Paginate through Clerk's user list to avoid the hard limit per-request.
   try {
     const clerk = await clerkClient();
-    const clerkUsers = await clerk.users.getUserList({ limit: 400 });
+    const PAGE_SIZE = 200;
+    let offset = 0;
+    const allClerkUsers: Awaited<ReturnType<typeof clerk.users.getUserList>>['data'] = [];
+    while (true) {
+      const page = await clerk.users.getUserList({ limit: PAGE_SIZE, offset });
+      allClerkUsers.push(...page.data);
+      if (page.data.length < PAGE_SIZE) break;
+      offset += PAGE_SIZE;
+    }
+    // Alias for backwards-compatible reference below
+    const clerkUsers = { data: allClerkUsers };
     
     return users.map(u => {
       const cu = clerkUsers.data.find(c => c.id === u.insforge_uid);

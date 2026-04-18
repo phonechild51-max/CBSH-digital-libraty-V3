@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 
 interface PendingUser {
   id: string;
-  full_name: string;
+  name: string;
   email: string;
   role: string;
   created_at: string;
@@ -180,7 +180,7 @@ export function AdminDashboardClient({ stats, pendingUsers }: AdminDashboardClie
                     border: "1px solid var(--color-accent-amber)",
                   }}
                 >
-                  {user.full_name?.charAt(0)?.toUpperCase() || "?"}
+                  {user.name?.charAt(0)?.toUpperCase() || "?"}
                 </div>
 
                 {/* Info */}
@@ -189,7 +189,7 @@ export function AdminDashboardClient({ stats, pendingUsers }: AdminDashboardClie
                     className="text-sm font-medium truncate"
                     style={{ color: "var(--color-text-primary)" }}
                   >
-                    {user.full_name}
+                    {user.name}
                   </p>
                   <p
                     className="text-xs truncate"

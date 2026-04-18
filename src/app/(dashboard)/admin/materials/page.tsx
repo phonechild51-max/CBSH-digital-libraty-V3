@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
+import { Pagination } from "@/components/ui/Pagination";
 import { useSession } from "@clerk/nextjs";
 import { createClient } from "@supabase/supabase-js";
 import { deleteMaterial } from "./actions";
@@ -23,12 +24,15 @@ interface Material {
   users: { name: string } | null;
 }
 
+const PAGE_SIZE = 15;
+
 export default function AdminMaterialsPage() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [deleteTarget, setDeleteTarget] = useState<Material | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
   const [, startTransition] = useTransition();
   const { session } = useSession();
 
@@ -60,6 +64,10 @@ export default function AdminMaterialsPage() {
     const matchSubject = !subjectFilter || m.subject === subjectFilter;
     return matchSearch && matchSubject;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const handleDelete = () => {
     if (!deleteTarget) return;
@@ -93,7 +101,10 @@ export default function AdminMaterialsPage() {
             type="text"
             placeholder="Search by title..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
             className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm"
             style={{
               backgroundColor: "var(--color-bg-input)",
@@ -104,7 +115,10 @@ export default function AdminMaterialsPage() {
         </div>
         <select
           value={subjectFilter}
-          onChange={(e) => setSubjectFilter(e.target.value)}
+          onChange={(e) => {
+            setSubjectFilter(e.target.value);
+            setCurrentPage(1);
+          }}
           className="px-4 py-2.5 rounded-xl text-sm"
           style={{
             backgroundColor: "var(--color-bg-input)",
@@ -160,7 +174,7 @@ export default function AdminMaterialsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((m) => (
+                {paginated.map((m) => (
                   <tr
                     key={m.id}
                     className="transition-colors"
@@ -217,6 +231,23 @@ export default function AdminMaterialsPage() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* Results count + Pagination */}
+      {!loading && filtered.length > 0 && (
+        <div className="flex flex-col items-center gap-3 pt-1">
+          <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+            Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length} materials
+          </p>
+          <Pagination
+            page={safePage}
+            totalPages={totalPages}
+            onChange={(p) => {
+              setCurrentPage(p);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
         </div>
       )}
 

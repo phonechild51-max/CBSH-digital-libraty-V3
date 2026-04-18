@@ -1,6 +1,7 @@
 "use server";
 
 import { createServerClient } from "@/lib/supabase/server";
+import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
 interface AnnouncementInput {
@@ -9,11 +10,24 @@ interface AnnouncementInput {
   priority: string;
   target_role: string;
   expiry_date: string | null;
-  created_by: string;
+  // Note: created_by is intentionally NOT accepted from the client.
+  // It is resolved server-side via auth() for security.
 }
 
 export async function createAnnouncement(data: AnnouncementInput) {
   const supabase = createServerClient();
+
+  // Resolve the current admin's Supabase ID on the server — never trust the client for this.
+  const { userId: clerkId } = await auth();
+  if (!clerkId) throw new Error("Unauthenticated");
+
+  const { data: adminUser } = await supabase
+    .from("users")
+    .select("id")
+    .eq("insforge_uid", clerkId)
+    .single();
+
+  const createdBy = adminUser?.id ?? null;
 
   const { error } = await supabase.from("announcements").insert({
     title: data.title,
@@ -21,7 +35,7 @@ export async function createAnnouncement(data: AnnouncementInput) {
     priority: data.priority,
     target_role: data.target_role,
     expiry_date: data.expiry_date || null,
-    created_by: data.created_by,
+    created_by: createdBy,
     is_published: false,
   });
 

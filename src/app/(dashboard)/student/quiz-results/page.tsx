@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSession, useUser } from "@clerk/nextjs";
 import { createClient } from "@supabase/supabase-js";
 import { useSearchParams } from "next/navigation";
@@ -11,6 +11,7 @@ import {
   Clock,
   ArrowLeft,
   Percent,
+  Eye,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -38,6 +39,9 @@ function QuizResultsContent() {
   const [attempt, setAttempt] = useState<AttemptData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Memoised client — rebuilt only when token changes
+  const tokenRef = useRef<string | null>(null);
+  const sbRef = useRef<ReturnType<typeof createClient> | null>(null);
 
   useEffect(() => {
     const fetchAttempt = async () => {
@@ -49,12 +53,16 @@ function QuizResultsContent() {
 
       const token = await session.getToken({ template: "supabase" });
       if (!token) return;
-
-      const sb = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { global: { headers: { Authorization: `Bearer ${token}` } } }
-      );
+      // Reuse cached client when token hasn't changed
+      if (token !== tokenRef.current || !sbRef.current) {
+        tokenRef.current = token;
+        sbRef.current = createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          { global: { headers: { Authorization: `Bearer ${token}` } } }
+        );
+      }
+      const sb = sbRef.current;
 
       const { data } = await sb
         .from("quiz_attempts")
@@ -347,6 +355,22 @@ function QuizResultsContent() {
                 {attempt.time_taken ? formatTime(attempt.time_taken) : "—"}
               </p>
             </div>
+          </div>
+
+          {/* Review Answers CTA */}
+          <div className="mt-6 pt-4" style={{ borderTop: "1px solid var(--color-border-divider)" }}>
+            <Link
+              href={`/student/quiz-review/${attempt.id}?quiz_id=${searchParams.get("quiz_id") ?? ""}`}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.01]"
+              style={{
+                backgroundColor: "var(--color-bg-app)",
+                color: "var(--color-text-primary)",
+                border: "1px solid var(--color-border-card)",
+              }}
+            >
+              <Eye size={16} />
+              Review Answers
+            </Link>
           </div>
         </div>
       </div>

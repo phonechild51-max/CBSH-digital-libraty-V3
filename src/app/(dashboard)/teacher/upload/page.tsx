@@ -181,7 +181,6 @@ export default function UploadMaterialPage() {
             file_type: fileType,
             file_size: file.size,
             mime_type: file.type,
-            uploaded_by: userData.id,
           });
 
           setProgress(100);

@@ -1,10 +1,4 @@
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Sign In — CBSH Digital Library",
-  description: "Sign in to access the CBSH Digital Library academic platform.",
-};
-
+// Each auth route defines its own metadata for accurate page titles in search results.
 export default function AuthLayout({
   children,
 }: {

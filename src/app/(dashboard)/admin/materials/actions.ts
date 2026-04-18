@@ -8,7 +8,10 @@ export async function deleteMaterial(materialId: string, insforgeFileKey: string
 
   // Delete file from storage if key exists
   if (insforgeFileKey) {
-    await supabase.storage.from("cbsh-library").remove([insforgeFileKey]);
+    const { error: storageError } = await supabase.storage.from("cbsh-library").remove([insforgeFileKey]);
+    if (storageError) {
+      throw new Error(`Failed to delete file from storage: ${storageError.message}`);
+    }
   }
 
   // Delete DB row

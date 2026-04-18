@@ -80,6 +80,8 @@ export function Topbar({ title, onMenuClick, supabaseUserId, role }: TopbarProps
             className="p-2 rounded-lg relative transition-colors"
             style={{ color: "var(--color-text-secondary)" }}
             aria-label="Notifications"
+            aria-expanded={showNotifications}
+            aria-haspopup="dialog"
           >
             <Bell size={20} />
             {unreadCount > 0 && (

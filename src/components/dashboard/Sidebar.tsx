@@ -145,7 +145,12 @@ export function Sidebar({ role, pendingCount = 0, isOpen, onClose }: SidebarProp
           </div>
         )}
         {isMobile && (
-          <button onClick={onClose} className="p-1" style={{ color: "var(--color-text-secondary)" }}>
+          <button 
+            onClick={onClose} 
+            className="p-1" 
+            style={{ color: "var(--color-text-secondary)" }}
+            aria-label="Close sidebar"
+          >
             <X size={20} />
           </button>
         )}
@@ -251,6 +256,8 @@ export function Sidebar({ role, pendingCount = 0, isOpen, onClose }: SidebarProp
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="w-full flex items-center justify-center p-2 rounded-xl transition-colors duration-150"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-expanded={!collapsed}
             style={{
               backgroundColor: "var(--color-bg-card)",
               border: "1px solid var(--color-border-card)",

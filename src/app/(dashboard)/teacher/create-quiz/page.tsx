@@ -151,7 +151,6 @@ export default function CreateQuizPage() {
               passing_marks: pm,
               total_marks: totalMarks,
               status,
-              created_by: userData.id,
             },
             questions.map((q) => ({
               question_text: q.question_text.trim(),

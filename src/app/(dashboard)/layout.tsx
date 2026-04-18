@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useUser, useClerk, useSession } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -39,22 +39,34 @@ export default function DashboardLayout({
 
   const { session } = useSession();
 
+  // Cached Supabase client — only rebuilt when the session token changes
+  const tokenRef = useRef<string | null>(null);
+  const sbRef = useRef<ReturnType<typeof createClient> | null>(null);
+  const getSupabaseClient = useCallback(async () => {
+    if (!session) return null;
+    const token = await session.getToken({ template: "supabase" });
+    if (!token) return null;
+    if (token !== tokenRef.current || !sbRef.current) {
+      tokenRef.current = token;
+      sbRef.current = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { global: { headers: { Authorization: `Bearer ${token}` } } }
+      );
+    }
+    return sbRef.current;
+  }, [session]);
+
   // Lookup the Supabase user ID for notifications and check status
   useEffect(() => {
     if (!user?.id || !session) return;
 
     const checkStatus = async () => {
-      const token = await session.getToken({ template: "supabase" });
-      if (!token) {
+      const supabase = await getSupabaseClient();
+      if (!supabase) {
         setUserStatus("pending");
         return;
       }
-
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { global: { headers: { Authorization: `Bearer ${token}` } } }
-      );
 
       const { data } = await supabase
         .from("users")
@@ -63,8 +75,9 @@ export default function DashboardLayout({
         .single();
 
       if (data) {
-        setSupabaseUserId(data.id);
-        setUserStatus(data.status);
+        const userData = data as { id: string; status: string };
+        setSupabaseUserId(userData.id);
+        setUserStatus(userData.status);
       } else {
         // Mismatch detected: Clerk has user with role, but Supabase doesn't.
         // This usually happens if the DB is wiped but Clerk users are kept, or webhook failed.
@@ -80,7 +93,8 @@ export default function DashboardLayout({
             .single();
             
           if (newData) {
-            setSupabaseUserId(newData.id);
+            const newUserData = newData as { id: string };
+            setSupabaseUserId(newUserData.id);
           }
         } else {
           setUserStatus("pending");
@@ -89,21 +103,15 @@ export default function DashboardLayout({
     };
 
     checkStatus();
-  }, [user?.id, session]);
+  }, [user?.id, session, getSupabaseClient]);
 
   // Fetch pending user count for admin badge
   useEffect(() => {
     if (role !== "admin" || !session) return;
 
     const fetchPendingCount = async () => {
-      const token = await session.getToken({ template: "supabase" });
-      if (!token) return;
-
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { global: { headers: { Authorization: `Bearer ${token}` } } }
-      );
+      const supabase = await getSupabaseClient();
+      if (!supabase) return;
 
       const { count } = await supabase
         .from("users")
@@ -114,7 +122,7 @@ export default function DashboardLayout({
     };
 
     fetchPendingCount();
-  }, [role, session]);
+  }, [role, session, getSupabaseClient]);
 
   if (!isLoaded || (user?.id && !userStatus)) {
     return (

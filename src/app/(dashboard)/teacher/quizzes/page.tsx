@@ -10,7 +10,7 @@ import { formatDate } from "@/lib/utils";
 import {
   Search,
   Trash2,
-
+  Pencil,
   Archive,
   Send,
   RotateCcw,
@@ -18,6 +18,7 @@ import {
   HelpCircle,
 
 } from "lucide-react";
+import Link from "next/link";
 
 interface Quiz {
   id: string;

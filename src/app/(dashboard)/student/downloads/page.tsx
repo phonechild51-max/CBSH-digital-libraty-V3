@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession, useUser } from "@clerk/nextjs";
 import { createClient } from "@supabase/supabase-js";
 import { formatDate } from "@/lib/utils";
@@ -49,17 +49,29 @@ export default function DownloadsBookmarksPage() {
   const [bookmarks, setBookmarks] = useState<BookmarkRecord[]>([]);
   const [supabaseUserId, setSupabaseUserId] = useState("");
   const [loading, setLoading] = useState(true);
+  // Memoised client — rebuilt only when token changes
+  const tokenRef = useRef<string | null>(null);
+  const sbRef = useRef<ReturnType<typeof createClient> | null>(null);
+
+  const getClient = useCallback(async () => {
+    if (!session) return null;
+    const token = await session.getToken({ template: "supabase" });
+    if (!token) return null;
+    if (token !== tokenRef.current || !sbRef.current) {
+      tokenRef.current = token;
+      sbRef.current = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { global: { headers: { Authorization: `Bearer ${token}` } } }
+      );
+    }
+    return sbRef.current;
+  }, [session]);
 
   const fetchData = useCallback(async () => {
     if (!session || !user) return;
-    const token = await session.getToken({ template: "supabase" });
-    if (!token) return;
-
-    const sb = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: `Bearer ${token}` } } }
-    );
+    const sb = await getClient();
+    if (!sb) return;
 
     const { data: userData } = await sb
       .from("users")
@@ -95,26 +107,21 @@ export default function DownloadsBookmarksPage() {
       setBookmarks(bookmarksRes.data as unknown as BookmarkRecord[]);
 
     setLoading(false);
-  }, [session, user]);
+  }, [session, user, getClient]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   const removeBookmark = async (bookmarkId: string, materialId: string) => {
-    if (!session || !supabaseUserId) return;
+    if (!supabaseUserId) return;
 
     // Optimistic removal
     setBookmarks((prev) => prev.filter((b) => b.id !== bookmarkId));
 
     try {
-      const token = await session.getToken({ template: "supabase" });
-      const sb = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { global: { headers: { Authorization: `Bearer ${token}` } } }
-      );
-
+      const sb = await getClient();
+      if (!sb) throw new Error("No client");
       await sb
         .from("bookmarks")
         .delete()

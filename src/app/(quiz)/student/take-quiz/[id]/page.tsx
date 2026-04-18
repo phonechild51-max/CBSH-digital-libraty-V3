@@ -52,6 +52,8 @@ export default function TakeQuizPage() {
 
   const submitted = useRef(false);
   const startTime = useRef<number>(Date.now());
+  // Holds the latest handleSubmit so the timer interval never captures a stale closure
+  const handleSubmitRef = useRef<(autoSubmit?: boolean) => void>(() => {});
 
   // Fetch quiz data
   useEffect(() => {
@@ -84,7 +86,7 @@ export default function TakeQuizPage() {
       const questionsDataRaw = await questionsRes.json();
 
       if (!questionsRes.ok || !questionsDataRaw.questions?.length) {
-        setError(`DEBUG: Status = ${questionsRes.status}, Data = ${JSON.stringify(questionsDataRaw)}`);
+        setError("This quiz could not be loaded. It may have no questions or be unavailable. Please go back and try again.");
         setLoading(false);
         return;
       }
@@ -109,8 +111,8 @@ export default function TakeQuizPage() {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          // Auto-submit when time runs out
-          handleSubmit(true);
+          // Use ref to always call the latest handleSubmit with current answers
+          handleSubmitRef.current(true);
           return 0;
         }
         return prev - 1;
@@ -159,7 +161,7 @@ export default function TakeQuizPage() {
 
         if (data.success) {
           router.push(
-            `/student/quiz-results?attempt_id=${data.attempt_id}`
+            `/student/quiz-results?attempt_id=${data.attempt_id}&quiz_id=${quizId}`
           );
         } else {
           setError(data.error || "Submission failed.");
@@ -174,6 +176,11 @@ export default function TakeQuizPage() {
     },
     [answers, questions, quizId, router, showConfirm, submitting]
   );
+
+  // Keep ref always pointing at the latest handleSubmit (fixes timer stale closure)
+  useEffect(() => {
+    handleSubmitRef.current = handleSubmit;
+  }, [handleSubmit]);
 
   const selectAnswer = (questionId: string, answer: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: answer }));
@@ -382,6 +389,7 @@ export default function TakeQuizPage() {
                   key={key}
                   onClick={() => selectAnswer(currentQ.id, key)}
                   className="w-full text-left p-4 rounded-xl flex items-start gap-3 transition-all duration-200"
+                  aria-pressed={selected}
                   style={{
                     backgroundColor: selected
                       ? "var(--color-accent-amber-subtle)"

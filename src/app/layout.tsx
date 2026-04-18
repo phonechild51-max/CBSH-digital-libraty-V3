@@ -37,6 +37,14 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
+        {/* Blocking script: reads saved theme from localStorage before first paint to prevent FOUC */}
+        <head>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(){try{var t=localStorage.getItem('cbsh-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`,
+            }}
+          />
+        </head>
         <body
           className={`${cormorant.variable} ${dmSans.variable} ${jetbrainsMono.variable} antialiased`}
           style={{

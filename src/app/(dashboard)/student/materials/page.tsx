@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Pagination } from "@/components/ui/Pagination";
 import { useSession, useUser } from "@clerk/nextjs";
 import { createClient } from "@supabase/supabase-js";
 import { formatDate, formatFileSize } from "@/lib/utils";
@@ -50,50 +51,61 @@ export default function BrowseMaterialsPage() {
   const [sortBy, setSortBy] = useState("newest");
 
   // Pagination
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Memoised Supabase client
+  const tokenRef = useRef<string | null>(null);
+  const sbRef = useRef<ReturnType<typeof import('@supabase/supabase-js').createClient> | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!session || !user) return;
     const token = await session.getToken({ template: "supabase" });
     if (!token) return;
 
-    const sb = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { global: { headers: { Authorization: `Bearer ${token}` } } }
-    );
+    // Memoize client to avoid pool exhaustion
+    if (token !== tokenRef.current || !sbRef.current) {
+      tokenRef.current = token;
+      sbRef.current = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        { global: { headers: { Authorization: `Bearer ${token}` } } }
+      );
+    }
+    const sb = sbRef.current;
 
     // Get supabase user ID
-    const { data: userData } = await sb
+    const { data: userRaw } = await sb
       .from("users")
       .select("id")
       .eq("insforge_uid", user.id)
       .single();
 
-    if (!userData) {
+    if (!userRaw) {
       setLoading(false);
       return;
     }
+    const userData = userRaw as { id: string };
 
     setSupabaseUserId(userData.id);
 
     // Fetch materials and bookmarks in parallel
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [materialsRes, bookmarksRes] = await Promise.all([
-      sb
+      (sb as any)
         .from("materials")
         .select(
           "id, title, description, subject, semester, tags, file_type, file_size, download_count, upload_date"
         )
         .order("upload_date", { ascending: false }),
-      sb
+      (sb as any)
         .from("bookmarks")
         .select("material_id")
         .eq("user_id", userData.id),
     ]);
 
-    if (materialsRes.data) setMaterials(materialsRes.data);
+    if (materialsRes.data) setMaterials(materialsRes.data as Material[]);
     if (bookmarksRes.data) {
-      setBookmarkedIds(bookmarksRes.data.map((b) => b.material_id));
+      setBookmarkedIds((bookmarksRes.data as { material_id: string }[]).map((b) => b.material_id));
     }
 
     setLoading(false);
@@ -140,8 +152,9 @@ export default function BrowseMaterialsPage() {
       }
     });
 
-  const visible = filtered.slice(0, visibleCount);
-  const hasMore = visibleCount < filtered.length;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const visible = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   // Optimistic bookmark toggle
   const toggleBookmark = async (materialId: string, isBookmarked: boolean) => {
@@ -263,7 +276,7 @@ export default function BrowseMaterialsPage() {
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
-                setVisibleCount(PAGE_SIZE);
+                setCurrentPage(1);
               }}
               className="w-full pl-9 pr-3 py-2.5 rounded-lg text-sm focus:outline-none"
               style={{
@@ -280,7 +293,7 @@ export default function BrowseMaterialsPage() {
             value={subjectFilter}
             onChange={(e) => {
               setSubjectFilter(e.target.value);
-              setVisibleCount(PAGE_SIZE);
+              setCurrentPage(1);
             }}
             className="rounded-lg px-3 py-2.5 text-sm focus:outline-none"
             style={selectStyle}
@@ -298,7 +311,7 @@ export default function BrowseMaterialsPage() {
             value={semesterFilter}
             onChange={(e) => {
               setSemesterFilter(e.target.value);
-              setVisibleCount(PAGE_SIZE);
+              setCurrentPage(1);
             }}
             className="rounded-lg px-3 py-2.5 text-sm focus:outline-none"
             style={selectStyle}
@@ -329,7 +342,7 @@ export default function BrowseMaterialsPage() {
       {/* Results count */}
       {!loading && (
         <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-          Showing {visible.length} of {filtered.length} materials
+          Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length} materials
         </p>
       )}
 
@@ -553,22 +566,15 @@ export default function BrowseMaterialsPage() {
             })}
           </div>
 
-          {/* Load More */}
-          {hasMore && (
-            <div className="flex justify-center pt-4">
-              <button
-                onClick={() => setVisibleCount((p) => p + PAGE_SIZE)}
-                className="px-8 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-105"
-                style={{
-                  border: "1px solid var(--color-accent-amber)",
-                  color: "var(--color-accent-amber)",
-                  backgroundColor: "transparent",
-                }}
-              >
-                Load More
-              </button>
-            </div>
-          )}
+          {/* Pagination */}
+          <Pagination
+            page={safePage}
+            totalPages={totalPages}
+            onChange={(p) => {
+              setCurrentPage(p);
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
         </>
       )}
     </div>

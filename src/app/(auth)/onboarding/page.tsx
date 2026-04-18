@@ -9,18 +9,20 @@ export default function OnboardingPage() {
   const { user } = useUser();
   const [isPending, startTransition] = useTransition();
   const [submittedRole, setSubmittedRole] = useState<"student" | "teacher" | null>(null);
+  const [roleError, setRoleError] = useState<string | null>(null);
 
   const status = user?.publicMetadata?.status as string | undefined;
   const requestedRole = (user?.publicMetadata?.requested_role || submittedRole) as string | undefined;
 
   const handleSelectRole = (role: "student" | "teacher") => {
     setSubmittedRole(role);
+    setRoleError(null);
     startTransition(async () => {
       try {
         await setRoleAction(role);
       } catch (err) {
         console.error("Failed to set role", err);
-        alert("Something went wrong setting your role. Please try again.");
+        setRoleError("Something went wrong setting your role. Please try again.");
         setSubmittedRole(null);
       }
     });
@@ -51,8 +53,8 @@ export default function OnboardingPage() {
           {/* Student Card */}
           <button
             onClick={() => handleSelectRole("student")}
-            disabled={isPending}
-            className="group relative flex flex-col items-center p-10 rounded-3xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isPending || !!submittedRole}
+            className="group relative flex flex-col items-center p-10 rounded-3xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
             style={{
               backgroundColor: "var(--color-bg-card)",
               border: submittedRole === "student" ? "1px solid var(--color-accent-amber)" : "1px solid var(--color-border-card)",
@@ -88,8 +90,8 @@ export default function OnboardingPage() {
           {/* Teacher Card */}
           <button
             onClick={() => handleSelectRole("teacher")}
-            disabled={isPending}
-            className="group relative flex flex-col items-center p-10 rounded-3xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isPending || !!submittedRole}
+            className="group relative flex flex-col items-center p-10 rounded-3xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
             style={{
               backgroundColor: "var(--color-bg-card)",
               border: submittedRole === "teacher" ? "1px solid var(--color-accent-amber)" : "1px solid var(--color-border-card)",

@@ -10,7 +10,7 @@ export default async function AdminDashboardPage() {
   // Fetch top 5 pending users
   const { data: pendingUsers } = await supabase
     .from("users")
-    .select("id, full_name, email, role, created_at, insforge_uid")
+    .select("id, name, email, role, created_at, insforge_uid")
     .in("status", ["pending", "email_verified"])
     .order("created_at", { ascending: false })
     .limit(5);

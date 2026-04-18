@@ -4,15 +4,26 @@ import { createServerClient } from '@/lib/supabase/server'
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { userId } = await auth()
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { id: quizId } = params
+  const { id: quizId } = await params
   const supabase = createServerClient()
+
+  // Verify caller is an approved student
+  const { data: callerUser } = await supabase
+    .from('users')
+    .select('role, status')
+    .eq('insforge_uid', userId)
+    .single()
+
+  if (!callerUser || callerUser.role !== 'student' || callerUser.status !== 'approved') {
+    return NextResponse.json({ error: 'Forbidden: only approved students can take quizzes' }, { status: 403 })
+  }
 
   // Verify quiz exists and is published
   const { data: quiz } = await supabase
@@ -37,7 +48,7 @@ export async function GET(
   }
 
   if (!questions || questions.length === 0) {
-    return NextResponse.json({ error: `Debug: No questions found for quiz ${quizId}` }, { status: 404 })
+    return NextResponse.json({ error: 'No questions found for this quiz.' }, { status: 404 })
   }
 
   return NextResponse.json({ success: true, questions })

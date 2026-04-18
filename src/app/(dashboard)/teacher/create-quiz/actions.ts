@@ -1,5 +1,6 @@
 "use server";
 
+import { auth } from "@clerk/nextjs/server";
 import { createServerClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -11,7 +12,6 @@ interface QuizData {
   passing_marks: number;
   total_marks: number;
   status: "draft" | "published";
-  created_by: string;
 }
 
 interface QuestionData {
@@ -28,9 +28,30 @@ export async function createQuizWithQuestions(
   quiz: QuizData,
   questions: QuestionData[]
 ) {
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
+
   const supabase = createServerClient();
 
-  // Insert quiz
+  // Resolve the teacher's Supabase UUID from their Clerk ID server-side
+  const { data: dbUser, error: userError } = await supabase
+    .from("users")
+    .select("id, role, status")
+    .eq("insforge_uid", userId)
+    .single();
+
+  if (userError || !dbUser) throw new Error("User not found");
+  if (dbUser.role !== "teacher" && dbUser.role !== "admin")
+    throw new Error("Forbidden: only teachers can create quizzes");
+  if (dbUser.status !== "approved") throw new Error("Account not approved");
+
+  if (quiz.passing_marks > quiz.total_marks) {
+    throw new Error(
+      `Passing marks (${quiz.passing_marks}) cannot exceed total marks (${quiz.total_marks}).`
+    );
+  }
+
+  // Insert quiz with server-resolved created_by — never trusted from client
   const { data: newQuiz, error: quizError } = await supabase
     .from("quizzes")
     .insert({
@@ -41,7 +62,7 @@ export async function createQuizWithQuestions(
       passing_marks: quiz.passing_marks,
       total_marks: quiz.total_marks,
       status: quiz.status,
-      created_by: quiz.created_by,
+      created_by: dbUser.id,
     })
     .select("id")
     .single();

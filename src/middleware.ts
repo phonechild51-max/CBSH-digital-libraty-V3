@@ -13,12 +13,12 @@ export default clerkMiddleware(async (auth, req) => {
   if (!userId) return NextResponse.redirect(new URL('/sign-in', req.url))
 
   const role = (sessionClaims?.publicMetadata as { role?: string })?.role
+  const status = (sessionClaims?.publicMetadata as { status?: string })?.status
 
-  console.log('--- DEBUG MIDDLEWARE ---')
-  console.log('User ID:', userId)
-  console.log('Session Claims:', JSON.stringify(sessionClaims, null, 2))
-  console.log('Evaluated Role:', role)
-  console.log('------------------------')
+  // Denied users should never access the app regardless of role state
+  if (status === 'denied') {
+    return NextResponse.redirect(new URL('/unauthorized', req.url))
+  }
 
   const isOnboarding = req.nextUrl.pathname === '/onboarding';
 
